@@ -142,28 +142,28 @@ class Ticket extends CommonObject
 	 */
 	public $severity_code;
 
-    /**
-     * Type label
-     */
-    public $type_label;
-
-    /**
-     * Category label
-     */
-    public $category_label;
-
-    /**
-     * Severity label
-     */
-    public $severity_label;
-
-        /**
-     * Email from user
-     */
-    public $email_from;
+	/**
+	 * Type label
+	 */
+	public $type_label;
 
 	/**
-	 * @var int Création date
+	 * Category label
+	 */
+	public $category_label;
+
+	/**
+	 * Severity label
+	 */
+	public $severity_label;
+
+	/**
+	 * Email from user
+	 */
+	public $email_from;
+
+	/**
+	 * @var int Creation date
 	 */
 	public $datec = '';
 
@@ -1289,7 +1289,8 @@ class Ticket extends CommonObject
 
 		$result = '';
 
-		$label = img_picto('', $this->picto).' <u>'.$langs->trans("Ticket").'</u>';
+		$label = img_picto('', $this->picto).' <u class="paddingrightonly">'.$langs->trans("Ticket").'</u>';
+		$label .= ' '.$this->getLibStatut(4);
 		$label .= '<br>';
 		$label .= '<b>'.$langs->trans('Ref').':</b> '.$this->ref.'<br>';
 		$label .= '<b>'.$langs->trans('TicketTrackId').':</b> '.$this->track_id.'<br>';
@@ -1487,7 +1488,7 @@ class Ticket extends CommonObject
 				$message .= $langs->transnoentities('TicketNotificationRecipient').' : '.$recipient."\n";
 				$message .= "\n";
 				$message .= '* '.$langs->transnoentities('TicketNotificationLogMessage').' *'."\n";
-				$message .= dol_html_entity_decode($log_message, ENT_QUOTES|ENT_HTML5)."\n";
+				$message .= dol_html_entity_decode($log_message, ENT_QUOTES | ENT_HTML5)."\n";
 
 				if ($info_sendto['source'] == 'internal') {
 					$url_internal_ticket = dol_buildpath('/ticket/card.php', 2).'?track_id='.$this->track_id;
@@ -1515,8 +1516,8 @@ class Ticket extends CommonObject
 					$conf->global->MAIN_MAIL_AUTOCOPY_TO = '';
 				}
 				include_once DOL_DOCUMENT_ROOT.'/core/class/CMailFile.class.php';
-                $sendtocc = '';
-                $deliveryreceipt = 0;
+				$sendtocc = '';
+				$deliveryreceipt = 0;
 				$mailfile = new CMailFile($subject, $info_sendto['email'], $from, $message, $filepath, $mimetype, $filename, $sendtocc, '', $deliveryreceipt, 0);
 				if ($mailfile->error || $mailfile->errors) {
 					setEventMessages($mailfile->error, $mailfile->errors, 'errors');

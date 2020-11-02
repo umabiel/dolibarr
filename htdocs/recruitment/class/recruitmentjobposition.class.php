@@ -57,7 +57,7 @@ class RecruitmentJobPosition extends CommonObject
 	 */
 	public $isextrafieldmanaged = 1;
 
-    /**
+	/**
 	 * @var string String with name of icon for recruitmentjobposition. Must be the part after the 'object_' into object_recruitmentjobposition.png
 	 */
 	public $picto = 'recruitmentjobposition';
@@ -126,30 +126,30 @@ class RecruitmentJobPosition extends CommonObject
 	);
 	public $rowid;
 
-    /**
-     * @var string ref
-     */
+	/**
+	 * @var string ref
+	 */
 	public $ref;
 	public $entity;
 
-    /**
-     * @var string label
-     */
+	/**
+	 * @var string label
+	 */
 	public $label;
 	public $qty;
 	public $fk_soc;
 	public $fk_project;
 	public $fk_user_recruiter;
 
-    /**
-     * @var string recruiter email
-     */
-    public $email_recruiter;
+	/**
+	 * @var string recruiter email
+	 */
+	public $email_recruiter;
 
-    /**
-     * @var string suggested remuneration
-     */
-    public $remuneration_suggested;
+	/**
+	 * @var string suggested remuneration
+	 */
+	public $remuneration_suggested;
 
 	public $fk_user_supervisor;
 	public $fk_establishment;
@@ -236,7 +236,7 @@ class RecruitmentJobPosition extends CommonObject
 		{
 			foreach ($this->fields as $key => $val)
 			{
-				if (is_array($val['arrayofkeyval']))
+				if (!empty($val['arrayofkeyval']) && is_array($val['arrayofkeyval']))
 				{
 					foreach ($val['arrayofkeyval'] as $key2 => $val2)
 					{

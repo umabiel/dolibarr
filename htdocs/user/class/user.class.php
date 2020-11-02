@@ -12,7 +12,7 @@
  * Copyright (C) 2015       Marcos García           <marcosgdf@gmail.com>
  * Copyright (C) 2018       charlene Benke          <charlie@patas-monkey.com>
  * Copyright (C) 2018       Nicolas ZABOURI         <info@inovea-conseil.com>
- * Copyright (C) 2019       Frédéric France         <frederic.france@netlogic.fr>
+ * Copyright (C) 2019-2020  Frédéric France         <frederic.france@netlogic.fr>
  * Copyright (C) 2019       Abbes Bahfir            <dolipar@dolipar.org>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -678,14 +678,14 @@ class User extends CommonObject
 		} else {
 			// On a demande suppression d'un droit sur la base d'un nom de module ou perms
 			// Where pour la liste des droits a supprimer
-			if (!empty($allmodule))
-			{
-				if ($allmodule == 'allmodules')
-				{
+			if (!empty($allmodule)) {
+				if ($allmodule == 'allmodules') {
 					$wherefordel = 'allmodules';
 				} else {
 					$wherefordel = "module='".$this->db->escape($allmodule)."'";
-					if (!empty($allperms))  $whereforadd .= " AND perms='".$this->db->escape($allperms)."'";
+					if (!empty($allperms)) {
+						$wherefordel .= " AND perms='".$this->db->escape($allperms)."'";
+					}
 				}
 			}
 		}
@@ -897,7 +897,7 @@ class User extends CommonObject
 					} else {
 						if (empty($this->rights->$module->$perms)) $this->nb_rights++;
 						// if we have already define a subperm like this $this->rights->$module->level1->level2 with llx_user_rights, we don't want override level1 because the level2 can be not define on user group
-						if (!is_object($this->rights->$module->$perms)) $this->rights->$module->$perms = 1;
+						if (!isset($this->rights->$module->$perms) || !is_object($this->rights->$module->$perms)) $this->rights->$module->$perms = 1;
 					}
 				}
 				$i++;
@@ -1122,25 +1122,19 @@ class User extends CommonObject
 		global $mysoc;
 
 		// Clean parameters
-
-		if (!empty($conf->global->MAIN_FIRST_TO_UPPER)) $this->lastname = ucwords($this->lastname);
-		if (!empty($conf->global->MAIN_ALL_TO_UPPER)) $this->lastname = strtoupper($this->lastname);
-		if (!empty($conf->global->MAIN_FIRST_TO_UPPER)) $this->firstname = ucwords($this->firstname);
-
+		$this->setUpperOrLowerCase();
 		$this->login = trim($this->login);
 		if (!isset($this->entity)) $this->entity = $conf->entity; // If not defined, we use default value
 
 		dol_syslog(get_class($this)."::create login=".$this->login.", user=".(is_object($user) ? $user->id : ''), LOG_DEBUG);
 
 		// Check parameters
-		if (!empty($conf->global->USER_MAIL_REQUIRED) && !isValidEMail($this->email))
-		{
+		if (!empty($conf->global->USER_MAIL_REQUIRED) && !isValidEMail($this->email)) {
 			$langs->load("errors");
 			$this->error = $langs->trans("ErrorBadEMail", $this->email);
 			return -1;
 		}
-		if (empty($this->login))
-		{
+		if (empty($this->login)) {
 			$langs->load("errors");
 			$this->error = $langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("Login"));
 			return -1;
@@ -1414,18 +1408,17 @@ class User extends CommonObject
 		// phpcs:enable
 		global $conf;
 
+		$rd = array();
+		$num = 0;
 		$sql = "SELECT id FROM ".MAIN_DB_PREFIX."rights_def";
 		$sql .= " WHERE bydefault = 1";
 		$sql .= " AND entity = ".$conf->entity;
 
 		$resql = $this->db->query($sql);
-		if ($resql)
-		{
+		if ($resql) {
 			$num = $this->db->num_rows($resql);
 			$i = 0;
-			$rd = array();
-			while ($i < $num)
-			{
+			while ($i < $num) {
 				$row = $this->db->fetch_row($resql);
 				$rd[$i] = $row[0];
 				$i++;
@@ -1433,8 +1426,7 @@ class User extends CommonObject
 			$this->db->free($resql);
 		}
 		$i = 0;
-		while ($i < $num)
-		{
+		while ($i < $num) {
 			$sql = "DELETE FROM ".MAIN_DB_PREFIX."user_rights WHERE fk_user = $this->id AND fk_id=$rd[$i]";
 			$result = $this->db->query($sql);
 
@@ -1467,11 +1459,6 @@ class User extends CommonObject
 		dol_syslog(get_class($this)."::update notrigger=".$notrigger.", nosyncmember=".$nosyncmember.", nosyncmemberpass=".$nosyncmemberpass);
 
 		// Clean parameters
-
-		if (!empty($conf->global->MAIN_FIRST_TO_UPPER)) $this->lastname = ucwords($this->lastname);
-		if (!empty($conf->global->MAIN_ALL_TO_UPPER)) $this->lastname = strtoupper($this->lastname);
-		if (!empty($conf->global->MAIN_FIRST_TO_UPPER)) $this->firstname = ucwords($this->firstname);
-
 		$this->lastname     = trim($this->lastname);
 		$this->firstname    = trim($this->firstname);
 		$this->employee    	= $this->employee ? $this->employee : 0;
@@ -1479,9 +1466,10 @@ class User extends CommonObject
 		$this->gender       = trim($this->gender);
 		$this->pass         = trim($this->pass);
 		$this->api_key      = trim($this->api_key);
-		$this->address = $this->address ?trim($this->address) : trim($this->address);
-		$this->zip = $this->zip ?trim($this->zip) : trim($this->zip);
-		$this->town = $this->town ?trim($this->town) : trim($this->town);
+		$this->address = $this->address ? trim($this->address) : trim($this->address);
+		$this->zip = $this->zip ? trim($this->zip) : trim($this->zip);
+		$this->town = $this->town ? trim($this->town) : trim($this->town);
+		$this->setUpperOrLowerCase();
 		$this->state_id = trim($this->state_id);
 		$this->country_id = ($this->country_id > 0) ? $this->country_id : 0;
 		$this->office_phone = trim($this->office_phone);
@@ -2265,8 +2253,9 @@ class User extends CommonObject
 
 		// Info Login
 		$label .= '<div class="centpercent">';
-		$label .= img_picto('', $this->picto).' <u>'.$langs->trans("User").'</u><br>';
-		$label .= '<b>'.$langs->trans('Name').':</b> '.$this->getFullName($langs, '');
+		$label .= img_picto('', $this->picto).' <u class="paddingrightonly">'.$langs->trans("User").'</u>';
+		$label .= ' '.$this->getLibStatut(4);
+		$label .= '<br><b>'.$langs->trans('Name').':</b> '.$this->getFullName($langs, '');
 		if (!empty($this->login)) $label .= '<br><b>'.$langs->trans('Login').':</b> '.$this->login;
 		if (!empty($this->job)) $label .= '<br><b>'.$langs->trans("Job").':</b> '.$this->job;
 		$label .= '<br><b>'.$langs->trans("Email").':</b> '.$this->email;
@@ -2282,7 +2271,6 @@ class User extends CommonObject
 		}
 		$type = ($this->socid ? $langs->trans("External").$company : $langs->trans("Internal"));
 		$label .= '<br><b>'.$langs->trans("Type").':</b> '.$type;
-		$label .= '<br><b>'.$langs->trans("Status").'</b>: '.$this->getLibStatut(4);
 		$label .= '</div>';
 		if ($infologin > 0)
 		{

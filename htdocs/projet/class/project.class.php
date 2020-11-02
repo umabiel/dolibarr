@@ -1102,7 +1102,10 @@ class Project extends CommonObject
 		}
 
 		$label = '';
-		if ($option != 'nolink') $label = img_picto('', $this->picto).' <u>'.$langs->trans("Project").'</u>';
+		if ($option != 'nolink') $label = img_picto('', $this->picto).' <u class="paddingrightonly">'.$langs->trans("Project").'</u>';
+		if (isset($this->status)) {
+			$label .= ' '.$this->getLibStatut(5);
+		}
 		$label .= ($label ? '<br>' : '').'<b>'.$langs->trans('Ref').': </b>'.$this->ref; // The space must be after the : to not being explode when showing the title in img_picto
 		$label .= ($label ? '<br>' : '').'<b>'.$langs->trans('Label').': </b>'.$this->title; // The space must be after the : to not being explode when showing the title in img_picto
 		if (isset($this->public)) {
@@ -1118,9 +1121,6 @@ class Project extends CommonObject
 			$label .= ($label ? '<br>' : '').'<b>'.$langs->trans('DateEnd').': </b>'.dol_print_date($this->datee, 'day'); // The space must be after the : to not being explode when showing the title in img_picto
 		}
 		if ($moreinpopup) $label .= '<br>'.$moreinpopup;
-		if (isset($this->status)) {
-			$label .= '<br><b>'.$langs->trans("Status").":</b> ".$this->getLibStatut(5);
-		}
 
 		$url = '';
 		if ($option != 'nolink')
@@ -1471,7 +1471,7 @@ class Project extends CommonObject
 				$clone_project->note_public = '';
 			} else {
 				$this->db->begin();
-				$res = $clone_project->update_note(dol_html_entity_decode($clone_project->note_public, ENT_QUOTES|ENT_HTML5), '_public');
+				$res = $clone_project->update_note(dol_html_entity_decode($clone_project->note_public, ENT_QUOTES | ENT_HTML5), '_public');
 				if ($res < 0)
 				{
 					$this->error .= $clone_project->error;
@@ -1482,7 +1482,7 @@ class Project extends CommonObject
 				}
 
 				$this->db->begin();
-				$res = $clone_project->update_note(dol_html_entity_decode($clone_project->note_private, ENT_QUOTES|ENT_HTML5), '_private');
+				$res = $clone_project->update_note(dol_html_entity_decode($clone_project->note_private, ENT_QUOTES | ENT_HTML5), '_private');
 				if ($res < 0)
 				{
 					$this->error .= $clone_project->error;
