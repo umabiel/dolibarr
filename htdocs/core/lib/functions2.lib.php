@@ -944,9 +944,8 @@ function get_next_value($db, $mask, $table, $field, $where = '', $objsoc = '', $
 	//print "masktri=".$masktri." maskcounter=".$maskcounter." maskraz=".$maskraz." maskoffset=".$maskoffset."<br>\n";
 
 	// Define $sqlstring
-	if (function_exists('mb_strrpos'))
-		{
-		$posnumstart = mb_strrpos($maskwithnocode, $maskcounter, 'UTF-8');
+	if (function_exists('mb_strrpos')) {
+		$posnumstart = mb_strrpos($maskwithnocode, $maskcounter, 0, 'UTF-8');
 	} else {
 		$posnumstart = strrpos($maskwithnocode, $maskcounter);
 	}	// Pos of counter in final string (from 0 to ...)
@@ -1688,10 +1687,23 @@ function is_ip($ip)
  */
 function dol_buildlogin($lastname, $firstname)
 {
-	$login = strtolower(dol_string_unaccent($firstname));
-	$login .= ($login ? '.' : '');
-	$login .= strtolower(dol_string_unaccent($lastname));
-	$login = dol_string_nospecial($login, ''); // For special names
+	global $conf;
+
+	//$conf->global->MAIN_BUILD_LOGIN_RULE = 'f.lastname';
+	if (!empty($conf->global->MAIN_BUILD_LOGIN_RULE) && $conf->global->MAIN_BUILD_LOGIN_RULE == 'f.lastname') {	// f.lastname
+		$login = strtolower(dol_string_unaccent(dol_trunc($firstname, 1, 'right', 'UTF-8', 1)));
+		$login .= ($login ? '.' : '');
+		$login .= strtolower(dol_string_unaccent($lastname));
+		$login = dol_string_nospecial($login, ''); // For special names
+	} else {	// firstname.lastname
+		$login = strtolower(dol_string_unaccent($firstname));
+		$login .= ($login ? '.' : '');
+		$login .= strtolower(dol_string_unaccent($lastname));
+		$login = dol_string_nospecial($login, ''); // For special names
+	}
+
+	// TODO Add a hook to allow external modules to suggest new rules
+
 	return $login;
 }
 

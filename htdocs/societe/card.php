@@ -1288,7 +1288,7 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action))
 		print '</td>';
 		print '<td colspan="3">';
 		print '<textarea name="address" id="address" class="quatrevingtpercent" rows="'.ROWS_2.'" wrap="soft">';
-		print dol_escape_htmltag($object->address);
+		print dol_escape_htmltag($object->address, 0, 1);
 		print '</textarea>';
 		print $form->widgetForTranslation("address", $object, $permissiontoadd, 'textarea', 'alphanohtml', 'quatrevingtpercent');
 		print '</td></tr>';
@@ -1521,7 +1521,7 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action))
 		print '<tr>';
 		print '<td>'.$form->editfieldkey('AllocateCommercial', 'commercial_id', '', $object, 0).'</td>';
 		print '<td colspan="3" class="maxwidthonsmartphone">';
-		$userlist = $form->select_dolusers('', '', 0, null, 0, '', '', 0, 0, 0, '', 0, '', '', 0, 1);
+		$userlist = $form->select_dolusers('', '', 0, null, 0, '', '', 0, 0, 0, 'AND u.statut = 1', 0, '', '', 0, 1);
 		// Note: If user has no right to "see all thirdparties", we force selection of sale representative to him, so after creation he can see the record.
 		$selected = (count(GETPOST('commercial', 'array')) > 0 ? GETPOST('commercial', 'array') : (GETPOST('commercial', 'int') > 0 ? array(GETPOST('commercial', 'int')) : (empty($user->rights->societe->client->voir) ? array($user->id) : array())));
 		print $form->multiselectarray('commercial', $userlist, $selected, null, null, null, null, "90%");
@@ -1889,7 +1889,7 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action))
 			// Address
 			print '<tr><td class="tdtop">'.$form->editfieldkey('Address', 'address', '', $object, 0).'</td>';
 			print '<td colspan="3"><textarea name="address" id="address" class="quatrevingtpercent" rows="3" wrap="soft">';
-			print dol_escape_htmltag($object->address);
+			print dol_escape_htmltag($object->address, 0, 1);
 			print '</textarea>';
 			print $form->widgetForTranslation("address", $object, $permissiontoadd, 'textarea', 'alphanohtml', 'quatrevingtpercent');
 			print '</td></tr>';
@@ -2173,7 +2173,7 @@ if (is_object($objcanvas) && $objcanvas->displayCanvasExists($action))
 			print '<tr>';
 			print '<td>'.$form->editfieldkey('AllocateCommercial', 'commercial_id', '', $object, 0).'</td>';
 			print '<td colspan="3" class="maxwidthonsmartphone">';
-			$userlist = $form->select_dolusers('', '', 0, null, 0, '', '', 0, 0, 0, '', 0, '', '', 0, 1);
+			$userlist = $form->select_dolusers('', '', 0, null, 0, '', '', 0, 0, 0, 'AND u.statut = 1', 0, '', '', 0, 1);
 			$arrayselected = GETPOST('commercial', 'array');
 			if (empty($arrayselected)) $arrayselected = $object->getSalesRepresentatives($user, 1);
 			print $form->multiselectarray('commercial', $userlist, $arrayselected, null, null, null, null, "90%");

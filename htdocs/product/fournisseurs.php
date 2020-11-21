@@ -300,9 +300,9 @@ if (empty($reshook))
 					$multicurrency_price = price2num(GETPOST("multicurrency_price", 'alpha'));
 					$multicurrency_code = GETPOST("multicurrency_code", 'alpha');
 
-					$ret = $object->update_buyprice($quantity, $newprice, $user, $_POST["price_base_type"], $supplier, $_POST["oselDispo"], $ref_fourn, $tva_tx, $_POST["charges"], $remise_percent, 0, $npr, $delivery_time_days, $supplier_reputation, array(), '', $multicurrency_price, $_POST["multicurrency_price_base_type"], $multicurrency_tx, $multicurrency_code, $supplier_description, $barcode, $fk_barcode_type);
+					$ret = $object->update_buyprice($quantity, $newprice, $user, GETPOST("price_base_type"), $supplier, GETPOST("oselDispo"), $ref_fourn, $tva_tx, GETPOST("charges"), $remise_percent, 0, $npr, $delivery_time_days, $supplier_reputation, array(), '', $multicurrency_price, GETPOST("multicurrency_price_base_type"), $multicurrency_tx, $multicurrency_code, $supplier_description, $barcode, $fk_barcode_type);
 				} else {
-					$ret = $object->update_buyprice($quantity, $newprice, $user, $_POST["price_base_type"], $supplier, $_POST["oselDispo"], $ref_fourn, $tva_tx, $_POST["charges"], $remise_percent, 0, $npr, $delivery_time_days, $supplier_reputation, array(), '', 0, 'HT', 1, '', $supplier_description, $barcode, $fk_barcode_type);
+					$ret = $object->update_buyprice($quantity, $newprice, $user, GETPOST("price_base_type"), $supplier, GETPOST("oselDispo"), $ref_fourn, $tva_tx, GETPOST("charges"), $remise_percent, 0, $npr, $delivery_time_days, $supplier_reputation, array(), '', 0, 'HT', 1, '', $supplier_description, $barcode, $fk_barcode_type);
 				}
 				if ($ret < 0)
 				{
@@ -610,21 +610,17 @@ if ($id > 0 || $ref)
 					</script>';
 				}
 
-				if ($conf->multicurrency->enabled) {
-					// Currency
-					print '<tr><td class="fieldrequired">'.$langs->trans("Currency").'</td>';
-					print '<td>';
-					$currencycodetouse = GETPOST('multicurrency_code') ?GETPOST('multicurrency_code') : (isset($object->fourn_multicurrency_code) ? $object->fourn_multicurrency_code : '');
-					if (empty($currencycodetouse) && $object->fourn_multicurrency_tx == 1) $currencycodetouse = $conf->currency;
-					print $form->selectMultiCurrency($currencycodetouse, "multicurrency_code", 1);
-					print '</td>';
-					print '</tr>';
-
-					// Currency tx
-					print '<tr><td class="fieldrequired">'.$langs->trans("CurrencyRate").'</td>';
-					print '<td><input class="flat" name="multicurrency_tx" size="4" value="'.vatrate(GETPOST('multicurrency_tx') ?GETPOST('multicurrency_tx') : (isset($object->fourn_multicurrency_tx) ? $object->fourn_multicurrency_tx : '')).'">';
-					print '</td>';
-					print '</tr>';
+                if ($conf->multicurrency->enabled) {
+                    // Currency
+                    print '<tr><td class="fieldrequired">'.$langs->trans("Currency").'</td>';
+                    print '<td>';
+                    $currencycodetouse = GETPOST('multicurrency_code') ?GETPOST('multicurrency_code') : (isset($object->fourn_multicurrency_code) ? $object->fourn_multicurrency_code : '');
+                    if (empty($currencycodetouse) && $object->fourn_multicurrency_tx == 1) $currencycodetouse = $conf->currency;
+                    print $form->selectMultiCurrency($currencycodetouse, "multicurrency_code", 1);
+                    print ' &nbsp; '.$langs->trans("CurrencyRate").' ';
+                    print '<input class="flat" name="multicurrency_tx" size="4" value="'.vatrate(GETPOST('multicurrency_tx') ? GETPOST('multicurrency_tx') : (isset($object->fourn_multicurrency_tx) ? $object->fourn_multicurrency_tx : '')).'">';
+                    print '</td>';
+                    print '</tr>';
 
 					// Currency price qty min
 					print '<tr><td class="fieldrequired">'.$langs->trans("PriceQtyMinCurrency").'</td>';
@@ -655,7 +651,7 @@ if ($id > 0 || $ref)
 					}
 					$currencies = json_encode($currencies);
 
-					print <<<SCRIPT
+					print <<<END
     <script type="text/javascript">
         function update_price_from_multicurrency() {
             var multicurrency_price = $('input[name="multicurrency_price"]').val();
@@ -695,7 +691,7 @@ if ($id > 0 || $ref)
             });
         });
     </script>
-SCRIPT;
+END;
 				} else {
 					// Price qty min
 					print '<tr><td class="fieldrequired">'.$langs->trans("PriceQtyMin").'</td>';
@@ -719,7 +715,7 @@ SCRIPT;
 				print '</tr>';
 
 				// Reputation
-				print '<tr><td>'.$langs->trans("SupplierReputation").'</td><td>';
+				print '<tr><td>'.$langs->trans("ReferenceReputation").'</td><td>';
 				echo $form->selectarray('supplier_reputation', $object->reputations, $supplier_reputation ? $supplier_reputation : $object->supplier_reputation);
 				print '</td></tr>';
 

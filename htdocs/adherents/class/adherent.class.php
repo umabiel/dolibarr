@@ -2306,14 +2306,16 @@ class Adherent extends CommonObject
 	 *  Used to build previews or test instances.
 	 *	id must be 0 if object instance is a specimen.
 	 *
-	 *  @return	void
+	 *  @return	int
 	 */
 	public function initAsSpecimen()
 	{
 		global $user, $langs;
+		$now = dol_now();
 
 		// Initialise parametres
 		$this->id = 0;
+		$this->entity = 1;
 		$this->specimen = 1;
 		$this->civility_id = 0;
 		$this->lastname = 'DOLIBARR';
@@ -2330,24 +2332,30 @@ class Adherent extends CommonObject
 		$this->country = 'France';
 		$this->morphy = 'mor';
 		$this->email = 'specimen@specimen.com';
-		$this->socialnetworks = array('skype' => 'skypepseudo', 'twitter' => 'twitterpseudo', 'facebook' => 'facebookpseudo', 'linkedin' => 'linkedinpseudo');
+		$this->socialnetworks = array(
+			'skype' => 'skypepseudo',
+			'twitter' => 'twitterpseudo',
+			'facebook' => 'facebookpseudo',
+			'linkedin' => 'linkedinpseudo',
+		);
 		$this->phone = '0999999999';
 		$this->phone_perso = '0999999998';
 		$this->phone_mobile = '0999999997';
-		$this->note_private = 'No comment';
-		$this->birth = time();
+		$this->note_public = 'This is a public note';
+		$this->note_private = 'This is a private note';
+		$this->birth = $now;
 		$this->photo = '';
 		$this->public = 1;
 		$this->statut = 0;
 
-		$this->datefin = time();
-		$this->datevalid = time();
+		$this->datefin = $now;
+		$this->datevalid = $now;
 
 		$this->typeid = 1; // Id type adherent
 		$this->type = 'Type adherent'; // Libelle type adherent
 		$this->need_subscription = 0;
 
-		$this->first_subscription_date = time();
+		$this->first_subscription_date = $now;
 		$this->first_subscription_date_start = $this->first_subscription_date;
 		$this->first_subscription_date_end = dol_time_plus_duree($this->first_subscription_date_start, 1, 'y');
 		$this->first_subscription_amount = 10;
@@ -2356,6 +2364,7 @@ class Adherent extends CommonObject
 		$this->last_subscription_date_start = $this->first_subscription_date;
 		$this->last_subscription_date_end = dol_time_plus_duree($this->last_subscription_date_start, 1, 'y');
 		$this->last_subscription_amount = 10;
+		return 1;
 	}
 
 
@@ -2395,6 +2404,7 @@ class Adherent extends CommonObject
 		global $conf, $langs;
 
 		$info = array();
+		$socialnetworks = getArrayOfSocialNetworks();
 		$keymodified = false;
 
 		// Object classes
@@ -2409,8 +2419,13 @@ class Adherent extends CommonObject
 		}
 
 		// Possible LDAP KEY (constname => varname)
-		$ldapkey = array('LDAP_MEMBER_FIELD_FULLNAME' => 'fullname', 'LDAP_MEMBER_FIELD_NAME' => 'lastname', 'LDAP_MEMBER_FIELD_LOGIN' => 'login', 'LDAP_MEMBER_FIELD_LOGIN_SAMBA' => 'login',
-			'LDAP_MEMBER_FIELD_MAIL' => 'email');
+		$ldapkey = array(
+			'LDAP_MEMBER_FIELD_FULLNAME' => 'fullname',
+			'LDAP_MEMBER_FIELD_NAME' => 'lastname',
+			'LDAP_MEMBER_FIELD_LOGIN' => 'login',
+			'LDAP_MEMBER_FIELD_LOGIN_SAMBA' => 'login',
+			'LDAP_MEMBER_FIELD_MAIL' => 'email'
+		);
 
 		// Member
 		foreach ($ldapkey as $constname => $varname) {
@@ -2430,10 +2445,11 @@ class Adherent extends CommonObject
 		if ($this->zip && !empty($conf->global->LDAP_MEMBER_FIELD_ZIP)) $info[$conf->global->LDAP_MEMBER_FIELD_ZIP] = $this->zip;
 		if ($this->town && !empty($conf->global->LDAP_MEMBER_FIELD_TOWN)) $info[$conf->global->LDAP_MEMBER_FIELD_TOWN] = $this->town;
 		if ($this->country_code && !empty($conf->global->LDAP_MEMBER_FIELD_COUNTRY)) $info[$conf->global->LDAP_MEMBER_FIELD_COUNTRY] = $this->country_code;
-		if ($this->skype && !empty($conf->global->LDAP_MEMBER_FIELD_SKYPE)) $info[$conf->global->LDAP_MEMBER_FIELD_SKYPE] = $this->skype;
-		if ($this->twitter && !empty($conf->global->LDAP_MEMBER_FIELD_TWITTER)) $info[$conf->global->LDAP_MEMBER_FIELD_TWITTER] = $this->twitter;
-		if ($this->facebook && !empty($conf->global->LDAP_MEMBER_FIELD_FACEBOOK)) $info[$conf->global->LDAP_MEMBER_FIELD_FACEBOOK] = $this->facebook;
-		if ($this->linkedin && !empty($conf->global->LDAP_MEMBER_FIELD_LINKEDIN)) $info[$conf->global->LDAP_MEMBER_FIELD_LINKEDIN] = $this->linkedin;
+		foreach ($socialnetworks as $key => $value) {
+			if ($this->socialnetworks[$value['label']] && !empty($conf->global->{'LDAP_MEMBER_FIELD_'.strtoupper($value['label'])})) {
+				$info[$conf->global->{'LDAP_MEMBER_FIELD_'.strtoupper($value['label'])}] = $this->socialnetworks[$value['label']];
+			}
+		}
 		if ($this->phone && !empty($conf->global->LDAP_MEMBER_FIELD_PHONE)) $info[$conf->global->LDAP_MEMBER_FIELD_PHONE] = $this->phone;
 		if ($this->phone_perso && !empty($conf->global->LDAP_MEMBER_FIELD_PHONE_PERSO)) $info[$conf->global->LDAP_MEMBER_FIELD_PHONE_PERSO] = $this->phone_perso;
 		if ($this->phone_mobile && !empty($conf->global->LDAP_MEMBER_FIELD_MOBILE)) $info[$conf->global->LDAP_MEMBER_FIELD_MOBILE] = $this->phone_mobile;
@@ -2446,8 +2462,12 @@ class Adherent extends CommonObject
 
 		// When password is modified
 		if (!empty($this->pass)) {
-			if (!empty($conf->global->LDAP_MEMBER_FIELD_PASSWORD)) $info[$conf->global->LDAP_MEMBER_FIELD_PASSWORD] = $this->pass; // this->pass = mot de passe non crypte
-			if (!empty($conf->global->LDAP_MEMBER_FIELD_PASSWORD_CRYPTED)) $info[$conf->global->LDAP_MEMBER_FIELD_PASSWORD_CRYPTED] = dol_hash($this->pass, 4); // Create OpenLDAP MD5 password (TODO add type of encryption)
+			if (!empty($conf->global->LDAP_MEMBER_FIELD_PASSWORD)) {
+				$info[$conf->global->LDAP_MEMBER_FIELD_PASSWORD] = $this->pass; // this->pass = mot de passe non crypte
+			}
+			if (!empty($conf->global->LDAP_MEMBER_FIELD_PASSWORD_CRYPTED)) {
+				$info[$conf->global->LDAP_MEMBER_FIELD_PASSWORD_CRYPTED] = dol_hash($this->pass, 4); // Create OpenLDAP MD5 password (TODO add type of encryption)
+			}
 		} // Set LDAP password if possible
 		elseif ($conf->global->LDAP_SERVER_PROTOCOLVERSION !== '3') { // If ldap key is modified and LDAPv3 we use ldap_rename function for avoid lose encrypt password
 			if (!empty($conf->global->DATABASE_PWD_ENCRYPTED)) {

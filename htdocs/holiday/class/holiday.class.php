@@ -1102,7 +1102,7 @@ class Holiday extends CommonObject
 
 
 	/**
-	 *	Check that a user is not on holiday for a particular timestamp
+	 *	Check that a user is not on holiday for a particular timestamp. Can check approved leave requests and not into public holidays of company.
 	 *
 	 * 	@param 	int			$fk_user				Id user
 	 *  @param	integer	    $timestamp				Time stamp date for a day (YYYY-MM-DD) without hours  (= 12:00AM in english and not 12:00PM that is 12:00)
@@ -1117,6 +1117,7 @@ class Holiday extends CommonObject
 		$isavailablemorning = true;
 		$isavailableafternoon = true;
 
+		// Check into leave requests
 		$sql = "SELECT cp.rowid, cp.date_debut as date_start, cp.date_fin as date_end, cp.halfday, cp.statut";
 		$sql .= " FROM ".MAIN_DB_PREFIX."holiday as cp";
 		$sql .= " WHERE cp.entity IN (".getEntity('holiday').")";
@@ -1161,7 +1162,10 @@ class Holiday extends CommonObject
 			}
 		} else dol_print_error($this->db);
 
-		return array('morning'=>$isavailablemorning, 'afternoon'=>$isavailableafternoon);
+		$result = array('morning'=>$isavailablemorning, 'afternoon'=>$isavailableafternoon);
+		if (!$isavailablemorning) $result['morning_reason'] = 'leave_request';
+		if (!$isavailableafternoon) $result['afternoon_reason'] = 'leave_request';
+		return $result;
 	}
 
 
@@ -1178,11 +1182,11 @@ class Holiday extends CommonObject
 
 		$result = '';
 
-		$label = img_picto('', $this->picto).' <u>'.$langs->trans("Holiday").'</u>';
-		$label .= '<br><b>'.$langs->trans('Ref').':</b> '.$this->ref;
+		$label = img_picto('', $this->picto).' <u class="paddingrightonly">'.$langs->trans("Holiday").'</u>';
 		if (isset($this->statut)) {
-			$label .= '<br><b>'.$langs->trans("Status").":</b> ".$this->getLibStatut(5);
+			$label .= ' '.$this->getLibStatut(5);
 		}
+		$label .= '<br><b>'.$langs->trans('Ref').':</b> '.$this->ref;
 
 		$url = DOL_URL_ROOT.'/holiday/card.php?id='.$this->id;
 
@@ -2112,7 +2116,7 @@ class Holiday extends CommonObject
 		$sql .= " FROM ".MAIN_DB_PREFIX."holiday as h";
 		$sql .= " WHERE h.statut > 1";
 		$sql .= " AND h.entity IN (".getEntity('holiday').")";
-		if (empty($user->rights->expensereport->read_all))
+		if (empty($user->rights->expensereport->readall))
 		{
 			$userchildids = $user->getAllChildIds(1);
 			$sql .= " AND (h.fk_user IN (".join(',', $userchildids).")";

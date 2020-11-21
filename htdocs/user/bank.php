@@ -76,6 +76,8 @@ if (!$bankid)
 }
 if (empty($account->userid)) $account->userid = $object->id;
 
+$permissiontoaddbankaccount = (!empty($user->rights->salaries->write) || !empty($user->rights->hrm->employee->write) || !empty($user->rights->user->creer));
+
 
 /*
  *	Actions
@@ -172,8 +174,7 @@ if ($action == 'update' && !$cancel)
 
 	$result = $account->update($user);
 
-	if (!$result)
-	{
+	if (!$result) {
 		setEventMessages($account->error, $account->errors, 'errors');
 		$action = 'edit'; // Force chargement page edition
 	} else {
@@ -183,32 +184,28 @@ if ($action == 'update' && !$cancel)
 }
 
 // update personal email
-if ($action == 'setpersonal_email')
-{
-	$object->personal_email = GETPOST('personal_email');
+if ($action == 'setpersonal_email') {
+	$object->personal_email = (string) GETPOST('personal_email', 'alphanohtml');
 	$result = $object->update($user);
 	if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
 }
 
 // update personal mobile
-if ($action == 'setpersonal_mobile')
-{
-	$object->personal_mobile = GETPOST('personal_mobile');
+if ($action == 'setpersonal_mobile') {
+	$object->personal_mobile = (string) GETPOST('personal_mobile', 'alphanohtml');
 	$result = $object->update($user);
 	if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
 }
 
 // update default_c_exp_tax_cat
-if ($action == 'setdefault_c_exp_tax_cat')
-{
+if ($action == 'setdefault_c_exp_tax_cat') {
 	$object->default_c_exp_tax_cat = GETPOST('default_c_exp_tax_cat', 'int');
 	$result = $object->update($user);
 	if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
 }
 
 // update default range
-if ($action == 'setdefault_range')
-{
+if ($action == 'setdefault_range') {
 	$object->default_range = GETPOST('default_range', 'int');
 	$result = $object->update($user);
 	if ($result < 0) setEventMessages($object->error, $object->errors, 'errors');
@@ -391,15 +388,15 @@ if ($action != 'edit' && $action != 'create')		// If not bank account yet, $acco
 	 * Last holidays
 	 */
 	if (!empty($conf->holiday->enabled) &&
-		($user->rights->holiday->read_all || ($user->rights->holiday->read && $object->id == $user->id))
+		($user->rights->holiday->readall || ($user->rights->holiday->read && $object->id == $user->id))
 		)
 	{
 		$holiday = new Holiday($db);
 
-		$sql = "SELECT h.rowid, h.statut, h.fk_type, h.date_debut, h.date_fin, h.halfday";
+		$sql = "SELECT h.rowid, h.statut as status, h.fk_type, h.date_debut, h.date_fin, h.halfday";
 		$sql .= " FROM ".MAIN_DB_PREFIX."holiday as h";
 		$sql .= " WHERE h.fk_user = ".$object->id;
-		$sql .= " AND h.entity = ".$conf->entity;
+		$sql .= " AND h.entity IN (".getEntity('holiday').")";
 		$sql .= " ORDER BY h.date_debut DESC";
 
 		$resql = $db->query($sql);
@@ -419,17 +416,18 @@ if ($action != 'edit' && $action != 'create')		// If not bank account yet, $acco
 			{
 				$objp = $db->fetch_object($resql);
 
-				print '<tr class="oddeven">';
-				print '<td class="nowrap">';
 				$holiday->id = $objp->rowid;
 				$holiday->ref = $objp->rowid;
 				$holiday->fk_type = $objp->fk_type;
+				$holiday->statut = $objp->status;
 				$nbopenedday = num_open_day($db->jdate($objp->date_debut), $db->jdate($objp->date_fin), 0, 1, $objp->halfday);
 
+				print '<tr class="oddeven">';
+				print '<td class="nowrap">';
 				print $holiday->getNomUrl(1);
 				print '</td><td class="right" width="80px">'.dol_print_date($db->jdate($objp->date_debut), 'day')."</td>\n";
 				print '<td class="right" style="min-width: 60px">'.$nbopenedday.' '.$langs->trans('DurationDays').'</td>';
-				print '<td class="right" style="min-width: 60px" class="nowrap">'.$holiday->LibStatut($objp->statut, 5).'</td></tr>';
+				print '<td class="right" style="min-width: 60px" class="nowrap">'.$holiday->LibStatut($objp->status, 5).'</td></tr>';
 				$i++;
 			}
 			$db->free($resql);
@@ -450,7 +448,7 @@ if ($action != 'edit' && $action != 'create')		// If not bank account yet, $acco
 	{
 		$exp = new ExpenseReport($db);
 
-		$sql = "SELECT e.rowid, e.ref, e.fk_statut, e.date_debut, e.total_ttc";
+		$sql = "SELECT e.rowid, e.ref, e.fk_statut as status, e.date_debut, e.total_ttc";
 		$sql .= " FROM ".MAIN_DB_PREFIX."expensereport as e";
 		$sql .= " WHERE e.fk_user_author = ".$object->id;
 		$sql .= " AND e.entity = ".$conf->entity;
@@ -473,16 +471,17 @@ if ($action != 'edit' && $action != 'create')		// If not bank account yet, $acco
 			{
 				$objp = $db->fetch_object($resql);
 
-				print '<tr class="oddeven">';
-				print '<td class="nowrap">';
 				$exp->id = $objp->rowid;
 				$exp->ref = $objp->ref;
 				$exp->fk_type = $objp->fk_type;
+				$exp->status = $objp->status;
 
+				print '<tr class="oddeven">';
+				print '<td class="nowrap">';
 				print $exp->getNomUrl(1);
 				print '</td><td class="right" width="80px">'.dol_print_date($db->jdate($objp->date_debut), 'day')."</td>\n";
 				print '<td class="right" style="min-width: 60px">'.price($objp->total_ttc).'</td>';
-				print '<td class="right nowrap" style="min-width: 60px">'.$exp->LibStatut($objp->fk_statut, 5).'</td></tr>';
+				print '<td class="right nowrap" style="min-width: 60px">'.$exp->LibStatut($objp->status, 5).'</td></tr>';
 				$i++;
 			}
 			$db->free($resql);
@@ -503,7 +502,13 @@ if ($action != 'edit' && $action != 'create')		// If not bank account yet, $acco
 
 	$morehtmlright = '';
 	if ($account->id == 0) {
-		$morehtmlright = dolGetButtonTitle($langs->trans('Add'), '', 'fa fa-plus-circle', $_SERVER["PHP_SELF"].'?id='.$object->id.'&amp;action=create');
+		if ($permissiontoaddbankaccount) {
+			$morehtmlright = dolGetButtonTitle($langs->trans('Add'), '', 'fa fa-plus-circle', $_SERVER["PHP_SELF"].'?id='.$object->id.'&amp;action=create');
+		} else {
+			$morehtmlright = dolGetButtonTitle($langs->trans('Add'), 'NotEnoughPermission', 'fa fa-plus-circle', '', '', -2);
+		}
+	} else {
+		$morehtmlright = dolGetButtonTitle($langs->trans('Add'), 'AlreadyOneBankAccount', 'fa fa-plus-circle', '', '', -2);
 	}
 
 	print load_fiche_titre($langs->trans("BankAccounts"), $morehtmlright, 'bank_account');
@@ -569,8 +574,8 @@ if ($action != 'edit' && $action != 'create')		// If not bank account yet, $acco
 
 		// Edit/Delete
 		print '<td class="right nowraponall">';
-		if ($user->rights->hrm->employee->write || $user->rights->user->creer) {
-			print '<a href="'.$_SERVER["PHP_SELF"].'?id='.$object->id.'&bankid='.$account->id.'&action=edit">';
+		if ($permissiontoaddbankaccount) {
+			print '<a class="editfielda" href="'.$_SERVER["PHP_SELF"].'?id='.$object->id.'&bankid='.$account->id.'&action=edit">';
 			print img_picto($langs->trans("Modify"), 'edit');
 			print '</a>';
 		}

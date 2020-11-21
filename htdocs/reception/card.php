@@ -111,6 +111,8 @@ $hookmanager->initHooks(array('receptioncard', 'globalcard'));
 $permissiondellink = $user->rights->reception->creer; // Used by the include of actions_dellink.inc.php
 //var_dump($object->lines[0]->detail_batch);
 
+$date_delivery = dol_mktime(GETPOST('date_deliveryhour', 'int'), GETPOST('date_deliverymin', 'int'), 0, GETPOST('date_deliverymonth', 'int'), GETPOST('date_deliveryday', 'int'), GETPOST('date_deliveryyear', 'int'));
+
 
 /*
  * Actions
@@ -225,8 +227,6 @@ if (empty($reshook))
 		$object->sizeS = GETPOST('sizeS', 'int') == '' ? "NULL" : GETPOST('sizeS', 'int');
 		$object->size_units = GETPOST('size_units', 'int');
 		$object->weight_units = GETPOST('weight_units', 'int');
-
-		$date_delivery = dol_mktime(GETPOST('date_deliveryhour', 'int'), GETPOST('date_deliverymin', 'int'), 0, GETPOST('date_deliverymonth', 'int'), GETPOST('date_deliveryday', 'int'), GETPOST('date_deliveryyear', 'int'));
 
 		// On va boucler sur chaque ligne du document d'origine pour completer objet reception
 		// avec info diverses + qte a livrer
@@ -777,8 +777,7 @@ if ($action == 'create')
 			// Date delivery planned
 			print '<tr><td>'.$langs->trans("DateDeliveryPlanned").'</td>';
 			print '<td colspan="3">';
-			//print dol_print_date($object->date_livraison,"day");	// date_livraison come from order and will be stored into date_delivery planed.
-			$date_delivery = ($date_delivery ? $date_delivery : $object->date_livraison); // $date_delivery comes from GETPOST
+			$date_delivery = ($date_delivery ? $date_delivery : $object->delivery_date); // $date_delivery comes from GETPOST
 			print $form->selectDate($date_delivery ? $date_delivery : -1, 'date_delivery', 1, 1, 1);
 			print "</td>\n";
 			print '</tr>';
@@ -2068,116 +2067,13 @@ if ($action == 'create')
 		print '</div><div class="fichehalfright"><div class="ficheaddleft">';
 	}
 
-	if ($action == 'presend')
-	{
-		$ref = dol_sanitizeFileName($object->ref);
-		include_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
-		$fileparams = dol_most_recent_file($conf->reception->dir_output.'/'.$ref, preg_quote($ref, '/').'[^\-]+');
-		$file = $fileparams['fullname'];
-		// Define output language
-		$outputlangs = $langs;
-		$newlang = '';
-		if ($conf->global->MAIN_MULTILANGS && empty($newlang) && !empty($_REQUEST['lang_id']))
-			$newlang = $_REQUEST['lang_id'];
-		if ($conf->global->MAIN_MULTILANGS && empty($newlang))
-			$newlang = $object->thirdparty->default_lang;
-		if (!empty($newlang))
-		{
-			$outputlangs = new Translate('', $conf);
-			$outputlangs->setDefaultLang($newlang);
-			$outputlangs->load('receptions');
-		}
-		// Build document if it not exists
-		if (!$file || !is_readable($file))
-		{
-			$result = $object->generateDocument(GETPOST('model') ?GETPOST('model') : $object->model_pdf, $outputlangs, $hidedetails, $hidedesc, $hideref);
-			if ($result <= 0)
-			{
-				dol_print_error($db, $object->error, $object->errors);
-				exit;
-			}
-			$fileparams = dol_most_recent_file($conf->reception->dir_output.'/reception/'.$ref, preg_quote($ref, '/').'[^\-]+');
-			$file = $fileparams['fullname'];
-		}
-		print '<div id="formmailbeforetitle" name="formmailbeforetitle"></div>';
-		print '<div class="clearboth"></div>';
-		print '<br>';
-		print load_fiche_titre($langs->trans('SendReceptionByEMail'));
-		print dol_get_fiche_head('');
-		// Cree l'objet formulaire mail
-		include_once DOL_DOCUMENT_ROOT.'/core/class/html.formmail.class.php';
-		$formmail = new FormMail($db);
-		$formmail->param['langsmodels'] = (empty($newlang) ? $langs->defaultlang : $newlang);
-		$formmail->fromtype = (GETPOST('fromtype') ?GETPOST('fromtype') : (!empty($conf->global->MAIN_MAIL_DEFAULT_FROMTYPE) ? $conf->global->MAIN_MAIL_DEFAULT_FROMTYPE : 'user'));
-		if ($formmail->fromtype === 'user') {
-			$formmail->fromid = $user->id;
-		}
-		$formmail->trackid = 'shi'.$object->id;
-		if (!empty($conf->global->MAIN_EMAIL_ADD_TRACK_ID) && ($conf->global->MAIN_EMAIL_ADD_TRACK_ID & 2))	// If bit 2 is set
-		{
-			include DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
-			$formmail->frommail = dolAddEmailTrackId($formmail->frommail, 'shi'.$object->id);
-		}
-		$formmail->withfrom = 1;
-		$liste = array();
-		foreach ($object->thirdparty->thirdparty_and_contact_email_array(1) as $key=>$value)	$liste[$key] = $value;
-		$formmail->withto = GETPOST("sendto") ?GETPOST("sendto") : $liste;
-		$formmail->withtocc = $liste;
-		$formmail->withtoccc = $conf->global->MAIN_EMAIL_USECCC;
-		$formmail->withtopic = $outputlangs->trans('SendReceptionRef', '__RECEPTIONREF__');
-		$formmail->withfile = 2;
-		$formmail->withbody = 1;
-		$formmail->withdeliveryreceipt = 1;
-		$formmail->withcancel = 1;
-		// Tableau des substitutions
-		$formmail->setSubstitFromObject($object, $langs);
-		$formmail->substit['__RECEPTIONREF__'] = $object->ref;
-		$formmail->substit['__RECEPTIONTRACKNUM__'] = $object->tracking_number;
-		$formmail->substit['__RECEPTIONTRACKNUMURL__'] = $object->tracking_url;
-		//Find the good contact adress
-		if ($typeobject == 'commande' && $object->$typeobject->id && !empty($conf->commande->enabled)) {
-			$objectsrc = new Commande($db);
-			$objectsrc->fetch($object->$typeobject->id);
-		}
-		if ($typeobject == 'propal' && $object->$typeobject->id && !empty($conf->propal->enabled)) {
-			$objectsrc = new Propal($db);
-			$objectsrc->fetch($object->$typeobject->id);
-		}
-		$custcontact = '';
-		$contactarr = array();
-		if (is_object($objectsrc))    // For the case the reception was created without orders
-		{
-			$contactarr = $objectsrc->liste_contact(-1, 'external');
-		}
-		if (is_array($contactarr) && count($contactarr) > 0) {
-			foreach ($contactarr as $contact) {
-				if ($contact['libelle'] == $langs->trans('TypeContact_commande_external_CUSTOMER')) {
-					require_once DOL_DOCUMENT_ROOT.'/contact/class/contact.class.php';
-					$contactstatic = new Contact($db);
-					$contactstatic->fetch($contact['id']);
-					$custcontact = $contactstatic->getFullName($langs, 1);
-				}
-			}
-			if (!empty($custcontact)) {
-				$formmail->substit['__CONTACTCIVNAME__'] = $custcontact;
-			}
-		}
-		// Tableau des parametres complementaires
-		$formmail->param['action'] = 'send';
-		$formmail->param['models'] = 'reception_send';
-		$formmail->param['models_id'] = GETPOST('modelmailselected', 'int');
-		$formmail->param['receptionid'] = $object->id;
-		$formmail->param['returnurl'] = $_SERVER["PHP_SELF"].'?id='.$object->id;
-		// Init list of files
-		if (GETPOST("mode") == 'init')
-		{
-			$formmail->clear_attached_files();
-			$formmail->add_attached_files($file, basename($file), dol_mimetype($file));
-		}
-		// Show form
-		print $formmail->get_form();
-		print dol_get_fiche_end();
-	}
+	// Presend form
+	$modelmail = 'shipping_send';
+	$defaulttopic = 'SendReceptionRef';
+	$diroutput = $conf->reception->dir_output;
+	$trackid = 'rec'.$object->id;
+
+	include DOL_DOCUMENT_ROOT.'/core/tpl/card_presend.tpl.php';
 }
 
 
